@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Lookup the original product's type
         const originalProd = (typeof products !== 'undefined' && products) ? products.find(p => p.id === pOrItem.id) : null;
         const type = originalProd ? originalProd.type : (pOrItem.type || 'dry-raw');
-        
+
         if (productImages[type]) {
             return `<img src="${productImages[type]}" alt="${escapeHTML(pOrItem.name || pOrItem.name_en)}" class="product-img-file" />`;
         }
@@ -474,8 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
        USER DATABASE & SECURITY (Authentication Credentials)
        ========================================================================== */
     const DEFAULT_USERS = [
-        { username: 'admin', password: 'password123', role: 'admin' },
-        { username: 'user1', password: 'user123', role: 'user' }
+        { username: 'admin1122', password: 'admin1122', role: 'admin' },
     ];
 
     let users = JSON.parse(localStorage.getItem('neko_users')) || DEFAULT_USERS;
