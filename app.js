@@ -156,7 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "modal-success-title": "ขอบคุณสำหรับการสั่งซื้อ",
             "modal-success-desc": "ใบสั่งซื้อของคุณเสร็จสิ้นเรียบร้อยแล้ว ลิงก์ติดตามและอีเมลยืนยันจะถูกส่งไปที่อีเมลของคุณโดยเร็ว",
             "modal-success-ref": "รหัสอ้างอิงใบสั่งซื้อ",
-            "modal-success-close": "กลับสู่หน้าหลัก"
+            "modal-success-close": "กลับสู่หน้าหลัก",
+            "coupon-neko50": "ลด 50% (ขั้นต่ำ ฿500, สูงสุด ฿1500)",
+            "coupon-welcome10": "ลด 10% (ขั้นต่ำ ฿200, สูงสุด ฿500)",
+            "coupon-freeship": "ส่งฟรี (ขั้นต่ำ ฿300)",
+            "coupon-neko30": "ลด 30% (ขั้นต่ำ ฿300, สูงสุด ฿1000)"
         },
         en: {
             "page-title": "Nekō — Feline Nourishment, Elevated.",
@@ -273,7 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "modal-success-title": "Thank you, Companion.",
             "modal-success-desc": "Your order was placed successfully. A confirmation email and tracking link will be sent shortly.",
             "modal-success-ref": "Simulated Reference",
-            "modal-success-close": "Return to Shop"
+            "modal-success-close": "Return to Shop",
+            "coupon-neko50": "50% OFF (Min $15, Max $45)",
+            "coupon-welcome10": "10% OFF (Min $6, Max $15)",
+            "coupon-freeship": "Free Shipping (Min $10)",
+            "coupon-neko30": "30% OFF (Min $10, Max $30)"
         }
     };
 
@@ -508,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Active session retrieval
-    let activeUser = JSON.parse(sessionStorage.getItem('neko_active_user')) || null;
+    let activeUser = JSON.parse(localStorage.getItem('neko_active_user')) || null;
 
     /* ==========================================================================
        CART STATE & DRAWER MANAGEMENT
@@ -548,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cart.push({ id, name, price: parseFloat(price), qty: 1 });
         }
         updateCartUI();
-        openCart();
+        showNotification(currentLang === 'th' ? `เพิ่ม "${name}" ลงในตะกร้าสินค้าแล้ว!` : `Added "${name}" to your cart!`);
     };
 
     const removeFromCart = (id) => {
@@ -618,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="cart-item-actions">
                                 <div class="qty-selector">
                                     <button class="qty-btn dec-btn" data-id="${item.id}">-</button>
-                                    <span class="qty-number">${item.qty}</span>
+                                    <input type="number" class="qty-input" value="${item.qty}" min="1" data-id="${item.id}" style="width: 32px; text-align: center; border: none; font-weight: 600; font-family: var(--font-body); font-size: 0.85rem; background: var(--bg-secondary); color: var(--text-primary); outline: none; -moz-appearance: textfield;">
                                     <button class="qty-btn inc-btn" data-id="${item.id}">+</button>
                                 </div>
                                 <button class="remove-item-btn" data-id="${item.id}">${currentLang === 'th' ? 'นำออก' : 'Remove'}</button>
@@ -662,6 +670,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             cartItemsContainer.querySelectorAll('.remove-item-btn').forEach(btn => {
                 btn.addEventListener('click', () => removeFromCart(btn.dataset.id));
+            });
+            cartItemsContainer.querySelectorAll('.qty-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    let val = parseInt(e.target.value);
+                    if (isNaN(val) || val <= 0) {
+                        val = 1;
+                    }
+                    const item = cart.find(item => item.id === input.dataset.id);
+                    if (item) {
+                        item.qty = val;
+                        updateCartUI();
+                    }
+                });
             });
         }
     };
@@ -755,6 +776,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutShipping = document.getElementById('checkoutShipping');
     const checkoutGrandTotal = document.getElementById('checkoutGrandTotal');
 
+    const PROMOS = {
+        'WELCOME10': { 
+            type: 'percent', 
+            value: 0.1, 
+            name: 'WELCOME10 (10%)',
+            min_th: 200,
+            min_en: 6,
+            max_th: 500,
+            max_en: 15
+        },
+        'NEKOMINIMAL': { 
+            type: 'percent', 
+            value: 0.1, 
+            name: 'NEKOMINIMAL (10%)',
+            min_th: 200,
+            min_en: 6,
+            max_th: 500,
+            max_en: 15
+        },
+        'NEKO50': { 
+            type: 'percent', 
+            value: 0.5, 
+            name: 'NEKO50 (50%)',
+            min_th: 500,
+            min_en: 15,
+            max_th: 1500,
+            max_en: 45
+        },
+        'FREESHIP': { 
+            type: 'freeship', 
+            value: 0, 
+            name: 'FREE SHIPPING',
+            min_th: 300,
+            min_en: 10
+        },
+        'NEKO30': {
+            type: 'percent',
+            value: 0.3,
+            name: 'NEKO30 (30%)',
+            min_th: 300,
+            min_en: 10,
+            max_th: 1000,
+            max_en: 30
+        }
+    };
+
     let orders = JSON.parse(localStorage.getItem('neko_orders')) || [];
     let activePromo = null; // keeps track of applied promo object
     let qrTimerInterval = null;
@@ -793,10 +860,28 @@ document.addEventListener('DOMContentLoaded', () => {
         let shippingFee = subtotal >= limit ? 0 : standardShipping;
 
         if (activePromo) {
-            if (activePromo.type === 'percent') {
-                discountVal = Math.round(subtotal * activePromo.value);
-            } else if (activePromo.type === 'freeship') {
-                shippingFee = 0;
+            const minLimit = currentLang === 'th' ? (activePromo.min_th || 0) : (activePromo.min_en || 0);
+            if (subtotal < minLimit) {
+                const curSymbol = currentLang === 'th' ? '฿' : '$';
+                if (promoStatusMsg) {
+                    promoStatusMsg.textContent = currentLang === 'th' ?
+                        `ยอดซื้อขั้นต่ำไม่ถึง ${curSymbol}${minLimit.toLocaleString()} สำหรับคูปองนี้` :
+                        `Minimum purchase of ${curSymbol}${minLimit.toLocaleString()} required for this coupon.`;
+                    promoStatusMsg.className = 'promo-status-msg error';
+                    promoStatusMsg.style.display = 'block';
+                }
+                activePromo = null;
+            } else {
+                if (activePromo.type === 'percent') {
+                    let calcDiscount = subtotal * activePromo.value;
+                    const maxCap = currentLang === 'th' ? (activePromo.max_th || Infinity) : (activePromo.max_en || Infinity);
+                    if (calcDiscount > maxCap) {
+                        calcDiscount = maxCap;
+                    }
+                    discountVal = Math.round(calcDiscount);
+                } else if (activePromo.type === 'freeship') {
+                    shippingFee = 0;
+                }
             }
         }
 
@@ -928,24 +1013,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const promos = {
-                'WELCOME10': { type: 'percent', value: 0.1, name: 'WELCOME10 (10%)' },
-                'NEKOMINIMAL': { type: 'percent', value: 0.1, name: 'NEKOMINIMAL (10%)' },
-                'NEKO50': { type: 'percent', value: 0.5, name: 'NEKO50 (50%)' },
-                'FREESHIP': { type: 'freeship', value: 0, name: 'FREE SHIPPING' }
-            };
-
-            if (promos[code]) {
-                activePromo = promos[code];
+            if (PROMOS[code]) {
+                activePromo = PROMOS[code];
                 promoStatusMsg.textContent = currentLang === 'th' ?
                     `ใช้คูปองส่วนลด "${activePromo.name}" สำเร็จ!` :
                     `Promo code "${activePromo.name}" applied successfully!`;
-                promoStatusMsg.classList.add('success');
+                promoStatusMsg.className = 'promo-status-msg success';
                 calculateCheckoutPrices();
             } else {
                 activePromo = null;
                 promoStatusMsg.textContent = currentLang === 'th' ? 'รหัสโปรโมชันไม่ถูกต้อง' : 'Invalid promo code';
-                promoStatusMsg.classList.add('error');
+                promoStatusMsg.className = 'promo-status-msg error';
                 calculateCheckoutPrices();
             }
         });
@@ -1462,7 +1540,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleLogout = () => {
         activeUser = null;
-        sessionStorage.removeItem('neko_active_user');
+        localStorage.removeItem('neko_active_user');
         updateAuthUIVisibility();
         closeAdminDrawer();
     };
@@ -1481,21 +1559,18 @@ document.addEventListener('DOMContentLoaded', () => {
             registerErrorMsg.style.display = 'none';
             registerSuccessMsg.style.display = 'none';
 
-            const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-            if (!usernameRegex.test(usernameInput)) {
+            if (usernameInput.length < 3 || usernameInput.length > 50) {
                 registerErrorMsg.textContent = currentLang === 'th' ?
-                    'ชื่อผู้ใช้ต้องเป็นตัวอักษรภาษาอังกฤษ ตัวเลข หรือขีดล่าง (_) ความยาว 3-15 ตัวเท่านั้น' :
-                    'Username must be alphanumeric or underscores, 3-15 characters.';
+                    'ชื่อผู้ใช้ต้องมีความยาว 3 ถึง 50 ตัวอักษร' :
+                    'Username must be between 3 and 50 characters.';
                 registerErrorMsg.style.display = 'block';
                 return;
             }
 
-            // Enhanced Security: Alphanumeric complexity check
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
-            if (!passwordRegex.test(passwordInput)) {
+            if (passwordInput.length < 4) {
                 registerErrorMsg.textContent = currentLang === 'th' ?
-                    'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร ประกอบด้วยตัวพิมพ์ใหญ่ (A-Z) ตัวพิมพ์เล็ก (a-z) และตัวเลข (0-9) อย่างละ 1 ตัว' :
-                    'Password must be at least 6 characters and include at least one uppercase, one lowercase, and one number.';
+                    'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร' :
+                    'Password must be at least 4 characters long.';
                 registerErrorMsg.style.display = 'block';
                 return;
             }
@@ -1571,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.removeItem('lockout_until');
 
                 activeUser = matchedUser;
-                sessionStorage.setItem('neko_active_user', JSON.stringify(matchedUser));
+                localStorage.setItem('neko_active_user', JSON.stringify(matchedUser));
                 updateAuthUIVisibility();
                 closeAuthModal();
                 updateCartUI();
@@ -1597,7 +1672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Social Login Click Handlers with Dynamic spinner connection UI
+    // Social Login Click Handlers with Mock Account Popup Connect
     const socialBtns = document.querySelectorAll('.social-btn');
     socialBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1610,33 +1685,213 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const origHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner"></span> <span>Connecting...</span>`;
+            // Close the main auth modal first
+            closeAuthModal();
 
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = origHTML;
+            // Create dynamic overlay
+            const oauthOverlay = document.createElement('div');
+            oauthOverlay.className = 'modal-overlay active';
+            oauthOverlay.style.zIndex = '15000'; // Make sure it sits on top
 
-                const randomId = Math.floor(1000 + Math.random() * 9000);
-                const mockUsername = `${platform}_User_${randomId}`;
+            // Title and standard accounts based on platform
+            let accountsHtml = '';
+            if (platform === 'Google') {
+                accountsHtml = `
+                    <div class="oauth-account" data-username="aphiwat_oboun" data-email="aphiwat.oboun@gmail.com">
+                        <div class="oauth-avatar">A</div>
+                        <div class="oauth-info">
+                            <strong class="oauth-name">Aphiwat Oboun</strong>
+                            <span class="oauth-email">aphiwat.oboun@gmail.com</span>
+                        </div>
+                    </div>
+                    <div class="oauth-account" data-username="somchai_dev" data-email="somchai.dev@gmail.com">
+                        <div class="oauth-avatar">S</div>
+                        <div class="oauth-info">
+                            <strong class="oauth-name">Somchai Dev</strong>
+                            <span class="oauth-email">somchai.dev@gmail.com</span>
+                        </div>
+                    </div>
+                `;
+            } else if (platform === 'Facebook') {
+                accountsHtml = `
+                    <div class="oauth-account" data-username="jane_doe" data-email="jane.doe@facebook.com">
+                        <div class="oauth-avatar">J</div>
+                        <div class="oauth-info">
+                            <strong class="oauth-name">Jane Doe</strong>
+                            <span class="oauth-email">jane.doe@facebook.com</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                accountsHtml = `
+                    <div class="oauth-account" data-username="guest_user" data-email="guest@line.me">
+                        <div class="oauth-avatar">G</div>
+                        <div class="oauth-info">
+                            <strong class="oauth-name">Guest User</strong>
+                            <span class="oauth-email">guest@line.me</span>
+                        </div>
+                    </div>
+                `;
+            }
 
-                activeUser = {
-                    username: mockUsername,
-                    password: '',
-                    role: 'user'
-                };
+            oauthOverlay.innerHTML = `
+                <div class="modal-card" style="max-width: 380px; padding: 40px 30px; border-radius: var(--border-radius); border: 1px solid var(--border-color); text-align: left;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+                        <h3 style="margin:0; font-size:1.15rem; font-family:var(--font-heading); font-weight:700;">
+                            ${currentLang === 'th' ? `เชื่อมต่อด้วย ${platform}` : `Sign in with ${platform}`}
+                        </h3>
+                        <button class="close-oauth-btn" style="font-size:1.5rem; color:var(--text-secondary); background:none; border:none; cursor:pointer;">&times;</button>
+                    </div>
+                    
+                    <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom: 20px;">
+                        ${currentLang === 'th' ? 'เลือกบัญชีจริงเพื่อลงชื่อเข้าใช้งาน Nekō:' : 'Choose an account to sign in to Nekō:'}
+                    </p>
 
-                sessionStorage.setItem('neko_active_user', JSON.stringify(activeUser));
-                updateAuthUIVisibility();
-                closeAuthModal();
-                updateCartUI();
+                    <div class="oauth-accounts-list" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 20px;">
+                        ${accountsHtml}
+                    </div>
 
-                showNotification(currentLang === 'th' ?
-                    `เข้าสู่ระบบสำเร็จผ่านบัญชี ${platform} (${mockUsername})` :
-                    `Logged in successfully via ${platform} (${mockUsername})`
-                );
-            }, 1000);
+                    <div style="border-top: 1px dashed var(--border-color); padding-top:15px; margin-bottom:20px;">
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">
+                            ${currentLang === 'th' ? 'หรือระบุบัญชีอื่น:' : 'Or use another name/email:'}
+                        </label>
+                        <input type="text" id="customOauthUsername" placeholder="${currentLang === 'th' ? 'ใส่ชื่อหรืออีเมลของคุณ' : 'Enter name or email'}" style="width:100%; padding:10px 14px; border:1px solid var(--border-color); border-radius:6px; font-size:0.85rem; outline:none; background:var(--bg-secondary); color:var(--text-primary); font-family:inherit;">
+                    </div>
+
+                    <button class="btn btn-dark btn-block" id="oauthSubmitBtn" style="font-size:0.85rem; padding:10px;">
+                        ${currentLang === 'th' ? 'ยืนยันเพื่อเชื่อมต่อ' : 'Connect Account'}
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(oauthOverlay);
+
+            // Style oauth-account styles on fly
+            const oauthStyles = document.createElement('style');
+            oauthStyles.className = 'temp-oauth-styles';
+            oauthStyles.innerHTML = `
+                .oauth-account {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 10px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: var(--transition-quick);
+                }
+                .oauth-account:hover, .oauth-account.selected {
+                    border-color: var(--accent-color);
+                    background-color: var(--accent-light);
+                }
+                .oauth-avatar {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: var(--text-primary);
+                    color: var(--white);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 700;
+                    font-size: 0.95rem;
+                }
+                .oauth-info {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .oauth-name {
+                    display: block;
+                    font-size: 0.85rem;
+                    color: var(--text-primary);
+                }
+                .oauth-email {
+                    display: block;
+                    font-size: 0.72rem;
+                    color: var(--text-secondary);
+                }
+            `;
+            document.head.appendChild(oauthStyles);
+
+            let selectedUser = '';
+
+            const accounts = oauthOverlay.querySelectorAll('.oauth-account');
+            accounts.forEach(acc => {
+                acc.addEventListener('click', () => {
+                    accounts.forEach(a => a.classList.remove('selected'));
+                    acc.classList.add('selected');
+                    selectedUser = acc.dataset.username;
+                    document.getElementById('customOauthUsername').value = ''; // clear input
+                });
+            });
+
+            // If user types custom username, remove selection
+            const customInput = oauthOverlay.querySelector('#customOauthUsername');
+            if (customInput) {
+                customInput.addEventListener('input', () => {
+                    accounts.forEach(a => a.classList.remove('selected'));
+                    selectedUser = '';
+                });
+            }
+
+            // Close logic
+            const closeOauth = () => {
+                oauthOverlay.remove();
+                oauthStyles.remove();
+                // Restore original auth modal
+                authModal.classList.add('active');
+            };
+            oauthOverlay.querySelector('.close-oauth-btn').addEventListener('click', closeOauth);
+
+            // Submit logic
+            oauthOverlay.querySelector('#oauthSubmitBtn').addEventListener('click', () => {
+                let finalUsername = selectedUser;
+                const typedName = customInput.value.trim();
+                
+                if (typedName) {
+                    finalUsername = typedName;
+                }
+
+                if (!finalUsername) {
+                    showNotification(currentLang === 'th' ? 'โปรดเลือกบัญชีหรือกรอกชื่อผู้ใช้' : 'Please select or enter an account', 'error');
+                    return;
+                }
+
+                // Show spinner in oauthSubmitBtn
+                const submitBtn = oauthOverlay.querySelector('#oauthSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="spinner"></span> <span>Saving Account...</span>`;
+
+                setTimeout(() => {
+                    // Search if user exists in persistent user base
+                    let existingUser = users.find(u => u.username.toLowerCase() === finalUsername.toLowerCase());
+                    if (!existingUser) {
+                        // Create and save to local user database
+                        existingUser = {
+                            username: finalUsername,
+                            password: '', // social account doesn't need local password
+                            role: 'user'
+                        };
+                        users.push(existingUser);
+                        saveUsersToStorage();
+                    }
+
+                    // Log in
+                    activeUser = existingUser;
+                    localStorage.setItem('neko_active_user', JSON.stringify(activeUser));
+                    
+                    oauthOverlay.remove();
+                    oauthStyles.remove();
+
+                    updateAuthUIVisibility();
+                    updateCartUI();
+
+                    showNotification(currentLang === 'th' ? 
+                        `เชื่อมต่อบัญชี ${platform} สำเร็จ: ยินดีต้อนรับ คุณ ${activeUser.username}!` : 
+                        `Connected ${platform} account: Welcome, ${activeUser.username}!`
+                    );
+                }, 1000);
+            });
         });
     });
 
