@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page-title">Nekō — ยกระดับสารอาหารเพื่อสุขภาพแมว</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600&family=Prompt:wght@300;400;500;600;700&family=Syne:wght@500;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="img/logo_store.png">
+</head>
+
+<body>
+    <!-- Top Banner -->
+    <div class="announcement-banner">
+        <span data-i18n="announcement">รับฟรีชามแมวมินิมอลสำหรับการสั่งซื้อครั้งแรก ใช้โค้ด: NEKOMINIMAL</span>
+    </div>
+
+    <!-- Header -->
+    <header class="main-header" id="header">
+        <div class="header-container">
+            <a href="#" class="logo">
+                <img src="img/logo_store.png" alt="Nekō Logo" class="logo-img">
+                <span class="logo-text">NEKŌ</span>
+            </a>
+
+            <nav class="nav-menu" id="navMenu">
+                <a href="#philosophy" class="nav-link" data-i18n="nav-philosophy">ปรัชญา</a>
+                <a href="#shop" class="nav-link" data-i18n="nav-shop">ร้านค้า</a>
+                <a href="#calculator" class="nav-link" data-i18n="nav-calc">คำนวณแคลอรี</a>
+                <a href="#finder" class="nav-link" data-i18n="nav-finder">ค้นหาสูตรอาหาร</a>
+                <a href="#faq" class="nav-link" data-i18n="nav-faq">FAQ</a>
+                <a href="#" class="nav-link admin-dashboard-link" id="navAdminDashboard"
+                    style="display: none; color: var(--accent-color); font-weight: 600;"
+                    data-i18n="nav-admin-dashboard">แผงแอดมิน</a>
+            </nav>
+
+            <div class="header-actions">
+                <!-- User Account Status badge -->
+                <div class="user-badge-container" id="userBadgeContainer" style="display: none;">
+                    <span class="user-badge-text" id="userGreetingText">สวัสดีคุณ</span>
+                    <button class="logout-btn-text" id="logoutBtn" data-i18n="nav-logout">ออกจากระบบ</button>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="navLoginBtn" data-i18n="nav-login">เข้าสู่ระบบ</button>
+
+                <!-- Language Switcher -->
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="th">TH</button>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+
+                <button class="cart-btn" id="cartToggle" aria-label="Open Cart">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="8" cy="21" r="1" />
+                        <circle cx="19" cy="21" r="1" />
+                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+                    </svg>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+
+                <button class="menu-toggle" id="menuToggle" aria-label="Toggle Menu">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-nav" id="mobileNav">
+        <nav class="mobile-links">
+            <!-- Mobile User Profile -->
+            <div class="mobile-user-status" id="mobileUserStatus"
+                style="display: none; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                <span id="mobileGreetingText"
+                    style="font-weight: 600; display: block; margin-bottom: 10px;">สวัสดีคุณ</span>
+                <button class="btn btn-secondary btn-sm btn-block" id="mobileLogoutBtn"
+                    data-i18n="nav-logout">ออกจากระบบ</button>
+            </div>
+            <button class="btn btn-secondary btn-sm btn-block" id="mobileLoginBtn" style="margin-bottom: 15px;"
+                data-i18n="nav-login">เข้าสู่ระบบ</button>
+
+            <a href="#philosophy" class="mobile-link" data-i18n="nav-philosophy">ปรัชญา</a>
+            <a href="#shop" class="mobile-link" data-i18n="nav-shop">ร้านค้า</a>
+            <a href="#calculator" class="mobile-link" data-i18n="nav-calc">คำนวณแคลอรี</a>
+            <a href="#finder" class="mobile-link" data-i18n="nav-finder">ค้นหาสูตรอาหาร</a>
+            <a href="#faq" class="mobile-link" data-i18n="nav-faq">FAQ</a>
+            <a href="#" class="mobile-link admin-dashboard-link" id="mobileAdminDashboard"
+                style="display: none; color: var(--accent-color);" data-i18n="nav-admin-dashboard">แผงแอดมิน</a>
+        </nav>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge animate-fade-in" data-i18n="hero-badge">อาหารแมวเกรดพรีเมียม</div>
+                <h1 class="hero-title animate-slide-up" id="heroTitle" data-i18n="hero-title">ยกระดับสารอาหาร<br><span
+                        class="highlight-text">สำหรับแมวที่คุณรัก</span></h1>
+                <p class="hero-description animate-slide-up-delayed" data-i18n="hero-desc">
+                    Nekō รังสรรค์สูตรอาหารโปรตีนแหล่งเดียวที่สมดุลทางโภชนาการด้วยเทคโนโลยีอบแห้งเยือกแข็ง (Freeze-Dry
+                    Raw) ออกแบบมาเพื่อสุขภาพที่ดีที่สุดของแมวของคุณ
+                    พร้อมบรรจุภัณฑ์ที่งดงามเข้ากับสุนทรียภาพในบ้านยุคใหม่
+                </p>
+                <div class="hero-cta animate-slide-up-delayed">
+                    <a href="#shop" class="btn btn-primary" data-i18n="hero-cta-shop">สำรวจร้านค้า</a>
+                    <a href="#finder" class="btn btn-secondary" data-i18n="hero-cta-finder">ค้นหาสูตรที่ใช่</a>
+                </div>
+            </div>
+            <div class="hero-image-wrapper animate-fade-in">
+                <div class="hero-image-container">
+                    <img src="img/hero_cat.png" alt="Aesthetic cat in a minimal living room" class="hero-image">
+                    <div class="hero-image-backdrop"></div>
+                    <div class="hero-floating-card">
+                        <span class="card-icon">✨</span>
+                        <div>
+                            <h4 data-i18n="hero-float-title">วัตถุดิบออร์แกนิก 100%</h4>
+                            <p data-i18n="hero-float-desc">ไม่มีสารเติมแต่ง ไม่มีแป้งเชื่อมต่อ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Philosophy Section -->
+    <section id="philosophy" class="philosophy-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="philo-subtitle">มาตรฐานของ NEKŌ</span>
+                <h2 class="section-title" data-i18n="philo-title">เมื่อดีไซน์อันงดงามมาบรรจบกับโภชนาการที่ดีที่สุด</h2>
+            </div>
+            <div class="philosophy-grid">
+                <div class="philosophy-card">
+                    <div class="card-num">01</div>
+                    <h3 class="card-title" data-i18n="philo-c1-title">โปรตีนจากแหล่งเดียว</h3>
+                    <p class="card-text" data-i18n="philo-c1-text">
+                        เราคัดสรรวัตถุดิบเฉพาะเนื้อสัตว์เกรดมนุษย์ที่เลี้ยงด้วยหญ้าตามธรรมชาติและปลาที่จับจากธรรมชาติ
+                        ปราศจากเศษเนื้อสัตว์ป่นหรือผลพลอยได้เด็ดขาด</p>
+                </div>
+                <div class="philosophy-card">
+                    <div class="card-num">02</div>
+                    <h3 class="card-title" data-i18n="philo-c2-title">ล็อกคุณค่าด้วยความเย็นจัด</h3>
+                    <p class="card-text" data-i18n="philo-c2-text">นวัตกรรมฟรีซดรายคงคุณค่าทางสารอาหาร เอนไซม์
+                        และวิตามินตามธรรมชาติไว้ถึง 98% ให้แมวได้รับประโยชน์จากเนื้อดิบโดยปราศจากความเลอะเทอะ</p>
+                </div>
+                <div class="philosophy-card">
+                    <div class="card-num">03</div>
+                    <h3 class="card-title" data-i18n="philo-c3-title">ดีไซน์มินิมอล</h3>
+                    <p class="card-text" data-i18n="philo-c3-text">เราเชื่อว่าอาหารแมวไม่ควรทำให้บ้านดูวุ่นวาย
+                        บรรจุภัณฑ์ของเราได้รับการออกแบบมาเพื่อเสริมสุนทรียภาพและกลมกลืนเข้ากับบ้านสไตล์มินิมอลของคุณอย่างสมบูรณ์แบบ
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Shop Catalog -->
+    <section id="shop" class="shop-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="shop-subtitle">คอลเลกชันแบบด้าน (Matte)</span>
+                <h2 class="section-title" data-i18n="shop-title">รังสรรค์ด้วยความพิถีพิถัน</h2>
+            </div>
+
+            <!-- Dynamic Product Grid loaded by JS -->
+            <div class="product-grid" id="productGrid">
+                <!-- Dynamically populated from JS script to handle admin CRUD modifications -->
+            </div>
+
+            <!-- Brand Credits -->
+            <p class="brand-credits" id="brandCredits" data-i18n="brand-credits">
+                *ข้อมูลและเครื่องหมายการค้าของสินค้าอ้างอิงเพื่อการสาธิตโภชนาการพรีเมียมจากแบรนด์ Ziwi Peak, Feline
+                Natural, Orijen, Wellness CORE, Stella & Chewy's และ Acana ขอขอบพระคุณเป็นอย่างสูง</p>
+        </div>
+    </section>
+
+    <!-- Calorie & Recipe Calculator -->
+    <section id="calculator" class="calculator-section">
+        <div class="section-container">
+            <div class="calculator-grid">
+                <div class="calculator-intro">
+                    <span class="section-subtitle" data-i18n="calc-subtitle">เครื่องคำนวณโภชนาการ</span>
+                    <h2 class="section-title" data-i18n="calc-title">ไม่ต้องเดา<br>ใช้หลักการทางคณิตศาสตร์</h2>
+                    <p class="calculator-desc" data-i18n="calc-desc">
+                        เมตาบอลิซึมของแมวมีความแตกต่างกันตามน้ำหนักและระดับกิจกรรม
+                        ใช้เครื่องคำนวณสไตล์มินิมอลของเราเพื่อค้นหาปริมาณพลังงานขั้นพื้นฐานที่ต้องการและสัดส่วนอาหารที่เหมาะสมที่สุดสำหรับเพื่อนรักของคุณ
+                    </p>
+                </div>
+                <div class="calculator-widget">
+                    <div class="calculator-card">
+                        <!-- Weight input slider -->
+                        <div class="input-group">
+                            <div class="label-header">
+                                <label for="weightInput" data-i18n="calc-weight-label">น้ำหนักของแมว</label>
+                                <span class="input-val" id="weightVal">4.5 กก.</span>
+                            </div>
+                            <input type="range" id="weightInput" min="2.0" max="10.0" step="0.1" value="4.5"
+                                class="slider">
+                            <div class="slider-bounds">
+                                <span>2.0 กก. (kg)</span>
+                                <span>10.0 กก. (kg)</span>
+                            </div>
+                        </div>
+
+                        <!-- Activity level picker -->
+                        <div class="input-group">
+                            <label class="group-label" data-i18n="calc-activity-label">ไลฟ์สไตล์ / ระดับกิจกรรม</label>
+                            <div class="activity-selector">
+                                <button type="button" class="activity-btn" data-factor="1.0">
+                                    <span class="btn-title" data-i18n="calc-act1-title">เลี้ยงในบ้าน</span>
+                                    <span class="btn-desc" data-i18n="calc-act1-desc">ทำหมัน / กิจกรรมน้อย</span>
+                                </button>
+                                <button type="button" class="activity-btn active" data-factor="1.2">
+                                    <span class="btn-title" data-i18n="calc-act2-title">ปานกลาง</span>
+                                    <span class="btn-desc" data-i18n="calc-act2-desc">กระฉับกระเฉง / ขี้เล่น</span>
+                                </button>
+                                <button type="button" class="activity-btn" data-factor="1.4">
+                                    <span class="btn-title" data-i18n="calc-act3-title">สูงมาก</span>
+                                    <span class="btn-desc" data-i18n="calc-act3-desc">ออกนอกบ้าน / ลูกแมว</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Calorie outcome display -->
+                        <div class="calc-results">
+                            <div class="result-item">
+                                <span class="result-label" data-i18n="calc-result-calories">แคลอรีต่อวัน</span>
+                                <span class="result-number" id="caloriesVal">252 kcal</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label" data-i18n="calc-result-recipe">สูตรอาหารแนะนำ</span>
+                                <span class="result-recipe" id="recipeMatch">Nekō Dry Raw</span>
+                            </div>
+                        </div>
+
+                        <div class="calculator-tips">
+                            <span class="tip-icon">ℹ️</span>
+                            <p class="tip-text" id="calcTip">ปริมาณที่แนะนำ: ให้ประมาณ 60 กรัมต่อวัน แบ่งเป็น 2 มื้อ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Recipe Finder -->
+    <section id="finder" class="finder-section">
+        <div class="section-container">
+            <div class="section-header text-center">
+                <span class="section-subtitle" data-i18n="finder-subtitle">เครื่องมือค้นหาสูตรอาหาร</span>
+                <h2 class="section-title" data-i18n="finder-title">ค้นหาสูตรที่สมบูรณ์แบบสำหรับแมวของคุณ</h2>
+                <p class="section-desc" data-i18n="finder-desc">ทำแบบทดสอบสั้นๆ 30
+                    วินาทีเพื่อเลือกสูตรอาหารที่เหมาะสมกับสุขภาพและสัญชาตญาณความชอบของแมวคุณ</p>
+            </div>
+
+            <div class="quiz-container">
+                <div class="quiz-progress-bar">
+                    <div class="progress-fill" id="quizProgress" style="width: 33%"></div>
+                </div>
+
+                <!-- Step 1: Age Group -->
+                <div class="quiz-step active" id="step1">
+                    <h3 class="quiz-question" data-i18n="quiz-q1">1. แมวของคุณอยู่ในช่วงวัยใด?</h3>
+                    <div class="quiz-options">
+                        <button type="button" class="quiz-opt-btn" data-key="age" data-value="kitten">
+                            <span class="opt-emoji">🍼</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q1-o1-t">ลูกแมว (Kitten)</span>
+                                <span class="opt-text" data-i18n="quiz-q1-o1-d">เน้นการเจริญเติบโตและสมอง (0-12
+                                    เดือน)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="age" data-value="adult">
+                            <span class="opt-emoji">🐈</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q1-o2-t">แมวโต (Adult)</span>
+                                <span class="opt-text" data-i18n="quiz-q1-o2-d">เน้นรักษาสุขภาพให้สมบูรณ์ (1-7
+                                    ปี)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="age" data-value="senior">
+                            <span class="opt-emoji">👵</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q1-o3-t">แมวสูงวัย (Senior)</span>
+                                <span class="opt-text" data-i18n="quiz-q1-o3-d">เน้นบำรุงข้อต่อและไต (7 ปีขึ้นไป)</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Texture Preference -->
+                <div class="quiz-step" id="step2">
+                    <h3 class="quiz-question" data-i18n="quiz-q2">2. แมวของคุณชอบอาหารเนื้อสัมผัสแบบไหน?</h3>
+                    <div class="quiz-options">
+                        <button type="button" class="quiz-opt-btn" data-key="texture" data-value="dry">
+                            <span class="opt-emoji">🟫</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q2-o1-t">เม็ดอบแห้ง (Dry Kibbles)</span>
+                                <span class="opt-text"
+                                    data-i18n="quiz-q2-o1-d">เม็ดกรุบกรอบผสมเนื้อฟรีซดรายเคี้ยวสนุก</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="texture" data-value="wet">
+                            <span class="opt-emoji">🥫</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q2-o2-t">สูตรเปียกพรีเมียม (Gourmet Wet)</span>
+                                <span class="opt-text"
+                                    data-i18n="quiz-q2-o2-d">น้ำซุปเข้มข้นพร้อมเนื้อบดละเอียดเพิ่มความชุ่มชื้น</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="texture" data-value="treats">
+                            <span class="opt-emoji">🥩</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q2-o3-t">เนื้อคำเล็ก (Pure Bites)</span>
+                                <span class="opt-text"
+                                    data-i18n="quiz-q2-o3-d">ขนมเนื้อสัตว์แท้ดิบอบแห้งชิ้นพอดีคำไร้สารปรุงแต่ง</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="quiz-nav">
+                        <button type="button" class="btn btn-secondary quiz-prev"
+                            data-i18n="quiz-back">ย้อนกลับ</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Health Goals -->
+                <div class="quiz-step" id="step3">
+                    <h3 class="quiz-question" data-i18n="quiz-q3">3. เป้าหมายสุขภาพที่สำคัญที่สุดคืออะไร?</h3>
+                    <div class="quiz-options">
+                        <button type="button" class="quiz-opt-btn" data-key="goal" data-value="skin">
+                            <span class="opt-emoji">✨</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q3-o1-t">ดูแลขนและผิวพรรณ</span>
+                                <span class="opt-text" data-i18n="quiz-q3-o1-d">อุดมด้วยกรดไขมันโอเมก้า 3
+                                    บำรุงรากขนลดการหลุดร่วง</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="goal" data-value="digestion">
+                            <span class="opt-emoji">🍃</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q3-o2-t">ระบบย่อยอาหารง่าย</span>
+                                <span class="opt-text"
+                                    data-i18n="quiz-q3-o2-d">มีพรีไบโอติกธรรมชาติช่วยเรื่องลำไส้ลดอาการท้องผูก</span>
+                            </div>
+                        </button>
+                        <button type="button" class="quiz-opt-btn" data-key="goal" data-value="weight">
+                            <span class="opt-emoji">⚖️</span>
+                            <div>
+                                <span class="opt-title" data-i18n="quiz-q3-o3-t">ควบคุมน้ำหนัก</span>
+                                <span class="opt-text"
+                                    data-i18n="quiz-q3-o3-d">สูตรควบคุมพลังงานและแอล-คาร์นิทีนเพื่อเผาผลาญไขมัน</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="quiz-nav">
+                        <button type="button" class="btn btn-secondary quiz-prev"
+                            data-i18n="quiz-back">ย้อนกลับ</button>
+                    </div>
+                </div>
+
+                <!-- Results Screen -->
+                <div class="quiz-step" id="stepResult">
+                    <div class="quiz-result-card">
+                        <div class="result-badge" data-i18n="quiz-res-badge">สูตรที่จับคู่ได้ดีที่สุด</div>
+                        <h3 class="quiz-result-title" id="matchedProductTitle">Nekō Dry Raw</h3>
+                        <p class="quiz-result-desc" id="matchedProductDesc">
+                            เราแนะนำสูตรไก่เพื่อระดับพลังงานที่เหมาะสมพร้อมพรีไบโอติกดูแลระบบย่อยอาหาร</p>
+
+                        <div class="result-match-reasoning">
+                            <h4 data-i18n="quiz-res-reasoning-title">ทำไมสูตรนี้จึงเหมาะกับโปรไฟล์ของคุณ:</h4>
+                            <ul id="reasonList">
+                                <li>กรดอะมิโนจำเป็นสำหรับแมวโตเต็มวัย</li>
+                                <li>ช่วยกระตุ้นการขัดฟันและให้พลังงานหนาแน่น</li>
+                                <li>ปรับสมดุลจุลินทรีย์ในระบบทางเดินอาหาร</li>
+                            </ul>
+                        </div>
+
+                        <div class="result-price-box">
+                            <span class="result-price" id="matchedProductPrice">฿1,390</span>
+                            <button type="button" class="btn btn-dark" id="addMatchedBtn"
+                                data-i18n="quiz-res-add">เพิ่มสูตรแนะนำลงตะกร้า</button>
+                        </div>
+
+                        <button type="button" class="quiz-reset-btn" id="quizReset"
+                            data-i18n="quiz-res-reset">เริ่มทำแบบทดสอบใหม่</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Accordion -->
+    <section id="faq" class="faq-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="faq-subtitle">FAQ</span>
+                <h2 class="section-title" data-i18n="faq-title">คำถามที่พบบ่อย</h2>
+            </div>
+
+            <div class="faq-accordion-list">
+                <div class="faq-item">
+                    <button class="faq-trigger" aria-expanded="false">
+                        <span data-i18n="faq-q1">อาหารดิบฟรีซดรายปลอดภัยต่อแมวของคุณจริงหรือไม่?</span>
+                        <span class="faq-icon"></span>
+                    </button>
+                    <div class="faq-panel">
+                        <p class="faq-answer" data-i18n="faq-a1">ปลอดภัยอย่างยิ่ง
+                            กระบวนการฟรีซดรายทำภายใต้อุณหภูมิต่ำกว่าจุดเยือกแข็งและดูดความชื้นออกทั้งหมด
+                            ซึ่งกำจัดน้ำที่แบคทีเรีย เช่น ซัลโมเนลลา และอีโคไล ใช้ในการเจริญเติบโต
+                            แต่คงรักษาสารอาหารที่จำเป็นตามธรรมชาติไว้ครบถ้วน</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-trigger" aria-expanded="false">
+                        <span data-i18n="faq-q2">ฉันควรเปลี่ยนอาหารมาเป็น Nekō อย่างไร?</span>
+                        <span class="faq-icon"></span>
+                    </button>
+                    <div class="faq-panel">
+                        <p class="faq-answer" data-i18n="faq-a2">แนะนำให้เปลี่ยนแบบค่อยเป็นค่อยไปในเวลา 7 วัน: ผสม Nekō
+                            25% กับอาหารเดิมในวันที่ 1-2, ผสม 50/50 ในวันที่ 3-4, และผสม Nekō 75% ในวันที่ 5-6
+                            ก่อนจะเปลี่ยนเป็น Nekō 100% เต็มตัวในวันที่ 7 เพื่อไม่ให้กระทบต่อทางเดินอาหาร</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-trigger" aria-expanded="false">
+                        <span data-i18n="faq-q3">ลูกแมวสามารถทานสูตรของ Nekō ได้หรือไม่?</span>
+                        <span class="faq-icon"></span>
+                    </button>
+                    <div class="faq-panel">
+                        <p class="faq-answer" data-i18n="faq-a3">ทานได้ครับ
+                            สูตรไก่อุดมไปด้วยระดับโปรตีนเข้มข้นที่เหมาะกับลูกแมวที่กำลังโต สำหรับลูกแมวอายุต่ำกว่า 6
+                            เดือน แนะนำให้นำเม็ดอบแห้งแช่น้ำอุ่นหรือน้ำซุปกระดูกเพื่อให้เคี้ยวได้ง่ายขึ้น</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-trigger" aria-expanded="false">
+                        <span data-i18n="faq-q4">บรรจุภัณฑ์สามารถนำไปรีไซเคิลได้หรือไม่?</span>
+                        <span class="faq-icon"></span>
+                    </button>
+                    <div class="faq-panel">
+                        <p class="faq-answer" data-i18n="faq-a4">ได้ครับ ซองและกระป๋องของเราทำจากวัสดุเดี่ยวรีไซเคิลได้
+                            100% ออกแบบมาโดยไม่ใช้อะลูมิเนียมประกบชั้นหนาแต่ยังคงเก็บกักสารอาหารได้ดีเยี่ยม
+                            เพื่อการแยกขยะที่ง่ายและเป็นมิตรต่อสิ่งแวดล้อม</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer & Newsletter -->
+    <footer class="main-footer">
+        <div class="footer-top-container">
+            <div class="footer-about">
+                <a href="#" class="logo">
+                    <img src="img/logo_store.png" alt="Nekō Logo" class="logo-img">
+                    <span class="logo-text">NEKŌ</span>
+                </a>
+                <p class="footer-tagline" data-i18n="footer-tagline">สารอาหารที่สอดคล้องกับธรรมชาติของแมว
+                    บรรจุในแพ็กเกจที่แต่งเติมความงามให้บ้านยุคใหม่</p>
+                <div class="social-links">
+                    <a href="#" class="social-link" aria-label="Instagram">Instagram</a>
+                    <a href="#" class="social-link" aria-label="Pinterest">Pinterest</a>
+                    <a href="#" class="social-link" aria-label="Journal">Journal</a>
+                </div>
+            </div>
+
+            <div class="footer-links-grid">
+                <div class="link-col">
+                    <h4 data-i18n="footer-col1-title">คอลเลกชัน</h4>
+                    <a href="#shop" data-i18n="footer-col1-l1">สูตรอบแห้งเม็ด</a>
+                    <a href="#shop" data-i18n="footer-col1-l2">สูตรเปียกกระป๋อง</a>
+                    <a href="#shop" data-i18n="footer-col1-l3">ขนมฟรีซดราย</a>
+                </div>
+                <div class="link-col">
+                    <h4 data-i18n="footer-col2-title">ข้อมูลช่วยเหลือ</h4>
+                    <a href="#calculator" data-i18n="footer-col2-l1">เครื่องคำนวณอาหารประจำวัน</a>
+                    <a href="#finder" data-i18n="footer-col2-l2">แบบทดสอบเลือกสูตรอาหาร</a>
+                    <a href="#faq" data-i18n="footer-col2-l3">วิทยาศาสตร์และความปลอดภัย</a>
+                </div>
+            </div>
+
+            <div class="footer-newsletter">
+                <h4 data-i18n="footer-news-title">ข่าวสารและโปรโมชัน</h4>
+                <p data-i18n="footer-news-desc">รับข้อมูลวิจัยโภชนาการแมวที่ถูกต้องและส่วนลดพิเศษคอลเลกชันใหม่ก่อนใคร
+                </p>
+                <form id="newsletterForm" class="newsletter-form">
+                    <input type="email" id="newsletterEmail" placeholder="ใส่อีเมลของคุณ" required
+                        aria-label="Newsletter Email">
+                    <button type="submit" class="newsletter-submit" data-i18n="footer-news-btn">เข้าร่วม</button>
+                </form>
+                <div class="newsletter-status" id="newsletterStatus"></div>
+            </div>
+        </div>
+
+        <div class="footer-bottom-container">
+            <span class="copyright">&copy; 2026 Nekō Corp. สงวนลิขสิทธิ์ทั้งหมด | Created by Aphiwat Obaun</span>
+            <div class="bottom-links">
+                <a href="#" data-i18n="footer-bottom-privacy">นโยบายความเป็นส่วนตัว</a>
+                <a href="#" data-i18n="footer-bottom-terms">เงื่อนไขการใช้บริการ</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Slide-out Cart Drawer -->
+    <div class="cart-drawer-overlay" id="cartOverlay"></div>
+    <div class="cart-drawer" id="cartDrawer">
+        <div class="cart-header">
+            <h3 data-i18n="cart-title">ตะกร้าสินค้า</h3>
+            <button class="close-cart-btn" id="cartClose" aria-label="Close Cart">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="cart-items-container" id="cartItemsContainer">
+            <!-- Simulated empty cart state -->
+            <div class="empty-cart-message">
+                <span class="empty-emoji">🐈</span>
+                <p data-i18n="cart-empty-text">ตะกร้าสินค้าของคุณว่างเปล่า</p>
+                <a href="#shop" class="btn btn-dark btn-sm" id="emptyCartShopBtn"
+                    data-i18n="cart-empty-btn">เริ่มช้อปปิ้ง</a>
+            </div>
+        </div>
+
+        <div class="cart-footer" id="cartFooter" style="display: none;">
+            <div class="cart-summary">
+                <span class="summary-label" data-i18n="cart-subtotal-label">ราคารวม</span>
+                <span class="summary-value" id="cartSubtotal">฿0</span>
+            </div>
+            <p class="shipping-info" data-i18n="cart-shipping-info">ค่าจัดส่งและภาษีจะคำนวณในขั้นตอนการชำระเงิน</p>
+            <button class="btn btn-dark btn-block" id="checkoutBtn"
+                data-i18n="cart-checkout-btn">ดำเนินการชำระเงิน</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal Success -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal-card">
+            <div class="modal-success-icon">🌱</div>
+            <h3 data-i18n="modal-success-title">ขอบคุณสำหรับการสั่งซื้อ</h3>
+            <p data-i18n="modal-success-desc">ใบสั่งซื้อของคุณเสร็จสิ้นเรียบร้อยแล้ว
+                ลิงก์ติดตามและอีเมลยืนยันจะถูกส่งไปที่อีเมลของคุณโดยเร็ว</p>
+            <div class="modal-summary-box">
+                <span class="box-label" data-i18n="modal-success-ref">รหัสอ้างอิงใบสั่งซื้อ</span>
+                <span class="box-val" id="orderIdVal">NEKO-XXXXXX</span>
+            </div>
+            <button class="btn btn-dark btn-block" id="closeModalBtn"
+                data-i18n="modal-success-close">กลับสู่หน้าหลัก</button>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Unified Login / Register) -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card auth-card">
+            <button class="close-modal-x" id="closeAuthBtn" aria-label="Close">&times;</button>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login" id="authTabLogin"
+                    data-i18n="auth-tab-login">เข้าสู่ระบบ</button>
+                <button class="auth-tab" data-tab="register" id="authTabRegister"
+                    data-i18n="auth-tab-register">สมัครสมาชิก</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form-panel active">
+                <p class="auth-desc" data-i18n="auth-login-desc">กรุณากรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าใช้งาน</p>
+                <div class="admin-input-group">
+                    <label for="loginUsername" data-i18n="admin-login-user">ชื่อผู้ใช้ (Username)</label>
+                    <input type="text" id="loginUsername" required placeholder="admin" autocomplete="username">
+                </div>
+                <div class="admin-input-group">
+                    <label for="loginPassword" data-i18n="admin-login-pass">รหัสผ่าน (Password)</label>
+                    <input type="password" id="loginPassword" required placeholder="password123"
+                        autocomplete="current-password">
+                </div>
+                <div class="login-error-msg" id="loginErrorMsg"></div>
+                <button type="submit" class="btn btn-dark btn-block" data-i18n="admin-login-submit">เข้าสู่ระบบ</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form-panel">
+                <p class="auth-desc" data-i18n="auth-register-desc">สร้างบัญชีผู้ใช้ใหม่เพื่อบันทึกประวัติการสั่งซื้อ
+                </p>
+                <div class="admin-input-group">
+                    <label for="regUsername" data-i18n="auth-reg-user">ชื่อผู้ใช้ (ภาษาอังกฤษ/ตัวเลข 3-15 ตัว)</label>
+                    <input type="text" id="regUsername" required placeholder="cat_lover" autocomplete="username">
+                </div>
+                <div class="admin-input-group">
+                    <label for="regPassword" data-i18n="auth-reg-pass">รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
+                    <input type="password" id="regPassword" required placeholder="รหัสผ่านใหม่"
+                        autocomplete="new-password">
+                </div>
+                <div class="admin-input-group">
+                    <label for="regConfirmPassword" data-i18n="auth-reg-confirm">ยืนยันรหัสผ่าน</label>
+                    <input type="password" id="regConfirmPassword" required placeholder="กรอกรหัสผ่านอีกครั้ง"
+                        autocomplete="new-password">
+                </div>
+                <div class="login-error-msg" id="registerErrorMsg"></div>
+                <div class="register-success-msg" id="registerSuccessMsg"
+                    style="color:var(--success); font-size:0.85rem; margin-bottom:20px; display:none;"></div>
+                <button type="submit" class="btn btn-dark btn-block"
+                    data-i18n="auth-reg-submit">สร้างบัญชีผู้ใช้</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Control Panel Drawer (Left Slide-in) -->
+    <div class="admin-drawer-overlay" id="adminOverlay"></div>
+    <div class="admin-drawer" id="adminDrawer">
+        <div class="admin-drawer-header">
+            <h3>แผงควบคุมแอดมิน (Admin Panel)</h3>
+            <button class="close-admin-btn" id="adminClose" aria-label="Close Admin Panel">&times;</button>
+        </div>
+
+        <div class="admin-drawer-tabs">
+            <button class="admin-tab-btn active" data-tab="products" id="tabBtnProducts">สินค้าทั้งหมด</button>
+            <button class="admin-tab-btn" data-tab="orders" id="tabBtnOrders">ใบสั่งซื้อสินค้า</button>
+        </div>
+
+        <div class="admin-drawer-content scrollable">
+            <!-- Products Tab -->
+            <div class="admin-tab-panel active" id="tab-products">
+                <!-- Metrics -->
+                <div class="admin-stats">
+                    <div class="stat-box">
+                        <span class="stat-label">สินค้าทั้งหมด</span>
+                        <span class="stat-val" id="totalProductsCount">3</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">ยอดขายรวมจำลอง</span>
+                        <span class="stat-val" id="totalSalesRevenue">฿0</span>
+                    </div>
+                </div>
+
+                <!-- Product Manager List -->
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อสินค้า (TH/EN)</th>
+                                <th>ราคา</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminProductsTableBody">
+                            <!-- Populated from JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add/Edit Form -->
+                <div class="admin-form-container">
+                    <h4 id="productFormTitle">เพิ่มสินค้าใหม่</h4>
+                    <form id="adminProductForm">
+                        <input type="hidden" id="editProductId" value="">
+
+                        <div class="admin-input-group-row">
+                            <div class="admin-input-group">
+                                <label for="prodNameTh">ชื่อสินค้า (ภาษาไทย)</label>
+                                <input type="text" id="prodNameTh" required placeholder="เช่น เนโกะ ซุปไก่">
+                            </div>
+                            <div class="admin-input-group">
+                                <label for="prodNameEn">ชื่อสินค้า (English)</label>
+                                <input type="text" id="prodNameEn" required placeholder="e.g. Nekō Chicken Soup">
+                            </div>
+                        </div>
+
+                        <div class="admin-input-group-row">
+                            <div class="admin-input-group">
+                                <label for="prodPriceTh">ราคา (บาท ฿)</label>
+                                <input type="number" id="prodPriceTh" required min="1" placeholder="เช่น 450">
+                            </div>
+                            <div class="admin-input-group">
+                                <label for="prodPriceEn">ราคา (USD $)</label>
+                                <input type="number" id="prodPriceEn" required min="1" placeholder="e.g. 15">
+                            </div>
+                        </div>
+
+                        <div class="admin-input-group">
+                            <label for="prodType">ประเภทผลิตภัณฑ์</label>
+                            <select id="prodType" required>
+                                <option value="dry-raw">สูตรอบแห้งเม็ด (Dry)</option>
+                                <option value="velvet-wet">สูตรเปียกกระป๋อง (Wet)</option>
+                                <option value="salmon-bites">ขนมฟรีซดราย (Treat)</option>
+                            </select>
+                        </div>
+
+                        <div class="admin-input-group">
+                            <label for="prodDescTh">รายละเอียด (ภาษาไทย)</label>
+                            <textarea id="prodDescTh" required placeholder="คำอธิบายจุดเด่นภาษาไทย"></textarea>
+                        </div>
+
+                        <div class="admin-input-group">
+                            <label for="prodDescEn">รายละเอียด (English)</label>
+                            <textarea id="prodDescEn" required placeholder="English description details"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-dark" id="saveProductBtn">บันทึกข้อมูล</button>
+                            <button type="button" class="btn btn-secondary" id="cancelEditBtn"
+                                style="display: none;">ยกเลิก</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Orders Tab -->
+            <div class="admin-tab-panel" id="tab-orders">
+                <div class="admin-orders-list" id="adminOrdersList">
+                    <!-- Loaded dynamically -->
+                    <div class="empty-orders-msg">ยังไม่มีคำสั่งซื้อที่ส่งเข้ามาในขณะนี้</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-drawer-footer">
+            <button class="btn btn-secondary btn-block" id="adminLogoutBtn">ออกจากระบบ (Logout)</button>
+        </div>
+    </div>
+
+    <!-- Core Javascript Code -->
+    <script src="app.js"></script>
+</body>
+
+</html>
