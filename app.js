@@ -14,6 +14,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /* ==========================================================================
+       NOTIFICATION UTILITY (Premium Toast System)
+       ========================================================================== */
+    const showNotification = (message, type = 'success') => {
+        const existingToast = document.querySelector('.custom-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${type === 'success' ? '✓' : 'ℹ'}</span>
+            <span class="toast-message">${escapeHTML(message)}</span>
+        `;
+        document.body.appendChild(toast);
+        // Force reflow
+        toast.offsetHeight;
+        toast.classList.add('active');
+
+        setTimeout(() => {
+            toast.classList.remove('active');
+            setTimeout(() => toast.remove(), 400);
+        }, 4000);
+    };
+
+    /* ==========================================================================
        TRANSLATION DICTIONARY (i18n)
        ========================================================================== */
     const translations = {
@@ -553,7 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const curSymbol = currentLang === 'th' ? '฿' : '$';
 
+        // Cart shipping progress DOM nodes lookup
+        const cartShippingProgress = document.getElementById('cartShippingProgress');
+        const shippingProgressText = document.getElementById('shippingProgressText');
+        const shippingProgressBar = document.getElementById('shippingProgressBar');
+
         if (cart.length === 0) {
+            if (cartShippingProgress) cartShippingProgress.style.display = 'none';
             cartItemsContainer.innerHTML = `
                 <div class="empty-cart-message">
                     <span class="empty-emoji">🐈</span>
@@ -568,11 +598,13 @@ document.addEventListener('DOMContentLoaded', () => {
             let subtotal = 0;
 
             cart.forEach(item => {
-                const itemTotal = item.price * item.qty;
+                // Fix Currency Switching Bug: lookup current price in active language
+                const prod = products.find(p => p.id === item.id);
+                const activePrice = prod ? (currentLang === 'th' ? prod.price_th : prod.price_en) : item.price;
+                const itemTotal = activePrice * item.qty;
                 subtotal += itemTotal;
-                const visualHTML = getProductImageHTML(item);
 
-                // Escape outputs safely for security (Anti-XSS)
+                const visualHTML = getProductImageHTML(item);
                 const safeName = escapeHTML(item.name);
 
                 htmlContent += `
@@ -582,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="cart-item-details">
                             <h4 class="cart-item-name">${safeName}</h4>
-                            <span class="cart-item-price">${curSymbol}${item.price.toLocaleString()}</span>
+                            <span class="cart-item-price">${curSymbol}${activePrice.toLocaleString()}</span>
                             <div class="cart-item-actions">
                                 <div class="qty-selector">
                                     <button class="qty-btn dec-btn" data-id="${item.id}">-</button>
@@ -595,6 +627,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             });
+
+            // Update free shipping progress details
+            if (cartShippingProgress) {
+                cartShippingProgress.style.display = 'block';
+                const limit = currentLang === 'th' ? 2000 : 60;
+
+                if (subtotal >= limit) {
+                    cartShippingProgress.classList.add('free-shipping');
+                    shippingProgressText.innerHTML = currentLang === 'th' ?
+                        'ยินดีด้วย! คุณได้รับสิทธิ์จัดส่งฟรีแล้ว 🎉' :
+                        'Congratulations! You qualify for Free Shipping! 🎉';
+                    shippingProgressBar.style.width = '100%';
+                } else {
+                    cartShippingProgress.classList.remove('free-shipping');
+                    const needed = limit - subtotal;
+                    shippingProgressText.innerHTML = currentLang === 'th' ?
+                        `ช้อปเพิ่มอีก <strong>฿${needed.toLocaleString()}</strong> เพื่อรับสิทธิ์จัดส่งฟรี!` :
+                        `Add <strong>$${needed.toLocaleString()}</strong> more to qualify for Free Shipping!`;
+                    const pct = Math.min(100, Math.round((subtotal / limit) * 100));
+                    shippingProgressBar.style.width = `${pct}%`;
+                }
+            }
 
             cartItemsContainer.innerHTML = htmlContent;
             cartSubtotal.textContent = `${curSymbol}${subtotal.toLocaleString()}`;
@@ -678,49 +732,307 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /* ==========================================================================
-       CHECKOUT MODAL & ORDERS SAVING WITH USERNAMES
+       CHECKOUT MODAL & ORDERS SAVING WITH DETAILS
        ========================================================================== */
     const checkoutBtn = document.getElementById('checkoutBtn');
     const checkoutModal = document.getElementById('checkoutModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const orderIdVal = document.getElementById('orderIdVal');
 
+    // Advanced Checkout Form Elements
+    const checkoutDetailsModal = document.getElementById('checkoutDetailsModal');
+    const closeCheckoutFormBtn = document.getElementById('closeCheckoutFormBtn');
+    const checkoutDetailsForm = document.getElementById('checkoutDetailsForm');
+    const checkoutSummaryItems = document.getElementById('checkoutSummaryItems');
+    const promoCodeInput = document.getElementById('promoCodeInput');
+    const applyPromoBtn = document.getElementById('applyPromoBtn');
+    const promoStatusMsg = document.getElementById('promoStatusMsg');
+
+    // Calc elements
+    const checkoutSubtotal = document.getElementById('checkoutSubtotal');
+    const discountRow = document.getElementById('discountRow');
+    const checkoutDiscount = document.getElementById('checkoutDiscount');
+    const checkoutShipping = document.getElementById('checkoutShipping');
+    const checkoutGrandTotal = document.getElementById('checkoutGrandTotal');
+
     let orders = JSON.parse(localStorage.getItem('neko_orders')) || [];
+    let activePromo = null; // keeps track of applied promo object
+    let qrTimerInterval = null;
 
-    const handleCheckout = () => {
-        closeCart();
-        const orderId = `NEKO-${Math.floor(100000 + Math.random() * 900000)}`;
-        orderIdVal.textContent = orderId;
+    const renderCheckoutSummary = () => {
+        if (!checkoutSummaryItems) return;
+        checkoutSummaryItems.innerHTML = '';
 
-        const subtotal = cart.reduce((t, item) => t + (item.price * item.qty), 0);
+        const curSymbol = currentLang === 'th' ? '฿' : '$';
 
-        const timestamp = new Date().toLocaleTimeString(currentLang === 'th' ? 'th-TH' : 'en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+        cart.forEach(item => {
+            const prod = products.find(p => p.id === item.id);
+            const activePrice = prod ? (currentLang === 'th' ? prod.price_th : prod.price_en) : item.price;
+
+            const row = document.createElement('div');
+            row.className = 'checkout-item-row';
+            row.innerHTML = `
+                <span class="item-info">${escapeHTML(item.name)} <strong>x${item.qty}</strong></span>
+                <span class="item-price">${curSymbol}${(activePrice * item.qty).toLocaleString()}</span>
+            `;
+            checkoutSummaryItems.appendChild(row);
         });
-
-        const buyerName = activeUser ? activeUser.username : (currentLang === 'th' ? 'ผู้มาเยือน (Guest)' : 'Guest');
-
-        orders.unshift({
-            id: orderId,
-            time: timestamp,
-            buyer: buyerName,
-            items: cart.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
-            total: subtotal,
-            currency: currentLang === 'th' ? '฿' : '$'
-        });
-
-        localStorage.setItem('neko_orders', JSON.stringify(orders));
-
-        checkoutModal.classList.add('active');
-
-        cart = [];
-        updateCartUI();
-        renderAdminDashboard();
     };
 
-    if (checkoutBtn) checkoutBtn.addEventListener('click', handleCheckout);
+    const calculateCheckoutPrices = () => {
+        const subtotal = cart.reduce((t, item) => {
+            const prod = products.find(p => p.id === item.id);
+            const activePrice = prod ? (currentLang === 'th' ? prod.price_th : prod.price_en) : item.price;
+            return t + (activePrice * item.qty);
+        }, 0);
+        const curSymbol = currentLang === 'th' ? '฿' : '$';
+
+        let discountVal = 0;
+        const limit = currentLang === 'th' ? 2000 : 60;
+        const standardShipping = currentLang === 'th' ? 80 : 3;
+        let shippingFee = subtotal >= limit ? 0 : standardShipping;
+
+        if (activePromo) {
+            if (activePromo.type === 'percent') {
+                discountVal = Math.round(subtotal * activePromo.value);
+            } else if (activePromo.type === 'freeship') {
+                shippingFee = 0;
+            }
+        }
+
+        const grandTotal = Math.max(0, subtotal - discountVal + shippingFee);
+
+        checkoutSubtotal.textContent = `${curSymbol}${subtotal.toLocaleString()}`;
+        checkoutShipping.textContent = shippingFee === 0 ?
+            (currentLang === 'th' ? 'ฟรี' : 'Free') :
+            `${curSymbol}${shippingFee}`;
+
+        if (discountVal > 0) {
+            discountRow.style.display = 'flex';
+            checkoutDiscount.textContent = `-${curSymbol}${discountVal.toLocaleString()}`;
+        } else {
+            discountRow.style.display = 'none';
+        }
+
+        checkoutGrandTotal.textContent = `${curSymbol}${grandTotal.toLocaleString()}`;
+
+        return { subtotal, discountVal, shippingFee, grandTotal };
+    };
+
+    // PromptPay countdown helper
+    const startPromptPayTimer = () => {
+        const timerEl = document.getElementById('qrTimer');
+        if (!timerEl) return;
+
+        clearInterval(qrTimerInterval);
+        let timeRemaining = 300; // 5 minutes
+
+        const updateTimer = () => {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const displayMin = minutes < 10 ? '0' + minutes : minutes;
+            const displaySec = seconds < 10 ? '0' + seconds : seconds;
+
+            timerEl.textContent = currentLang === 'th' ?
+                `รหัส QR หมดอายุใน ${displayMin}:${displaySec} นาที` :
+                `QR code expires in ${displayMin}:${displaySec} min`;
+
+            if (timeRemaining <= 0) {
+                clearInterval(qrTimerInterval);
+                timerEl.textContent = currentLang === 'th' ? 'สิทธิ์ชำระเงินหมดอายุแล้ว กรุณาสร้าง QR ใหม่' : 'QR code expired. Generate again.';
+            }
+            timeRemaining--;
+        };
+
+        updateTimer();
+        qrTimerInterval = setInterval(updateTimer, 1000);
+    };
+
+    // Toggle Payment Method Selector
+    const paymentCards = document.querySelectorAll('.payment-card');
+    paymentCards.forEach(card => {
+        card.addEventListener('click', () => {
+            paymentCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+
+            // Hide all panels
+            document.querySelectorAll('.pay-panel').forEach(panel => {
+                panel.style.display = 'none';
+                panel.classList.remove('active');
+            });
+
+            // Show selected panel
+            const method = card.dataset.method;
+            const targetPanel = document.getElementById(`panel-${method}`);
+            if (targetPanel) {
+                targetPanel.style.display = 'block';
+                targetPanel.classList.add('active');
+            }
+
+            if (method === 'promptpay') {
+                startPromptPayTimer();
+            } else {
+                clearInterval(qrTimerInterval);
+            }
+        });
+    });
+
+    // Handle checkout button click in cart drawer
+    const openCheckoutForm = () => {
+        if (cart.length === 0) {
+            showNotification(currentLang === 'th' ? 'ไม่มีสินค้าในตะกร้า' : 'Your cart is empty', 'error');
+            return;
+        }
+
+        closeCart();
+
+        // Prefill name if logged in
+        if (activeUser) {
+            const cleanName = activeUser.username.replace(/^(Google|Facebook|Line)_User_\d+$/, (match, p1) => {
+                return p1 + ' User';
+            });
+            document.getElementById('checkoutFullName').value = cleanName;
+        } else {
+            document.getElementById('checkoutFullName').value = '';
+        }
+
+        // Reset promo states
+        activePromo = null;
+        promoCodeInput.value = '';
+        promoStatusMsg.style.display = 'none';
+
+        renderCheckoutSummary();
+        calculateCheckoutPrices();
+
+        checkoutDetailsModal.classList.add('active');
+    };
+
+    if (checkoutBtn) checkoutBtn.addEventListener('click', openCheckoutForm);
+
+    if (closeCheckoutFormBtn) {
+        closeCheckoutFormBtn.addEventListener('click', () => {
+            checkoutDetailsModal.classList.remove('active');
+            clearInterval(qrTimerInterval);
+        });
+    }
+
+    // Apply Coupon Promo Logic
+    if (applyPromoBtn) {
+        applyPromoBtn.addEventListener('click', () => {
+            const code = promoCodeInput.value.trim().toUpperCase();
+            promoStatusMsg.className = 'promo-status-msg';
+
+            if (!code) {
+                promoStatusMsg.textContent = currentLang === 'th' ? 'กรุณากรอกรหัสโปรโมชัน' : 'Please enter a code';
+                promoStatusMsg.classList.add('error');
+                return;
+            }
+
+            const promos = {
+                'WELCOME10': { type: 'percent', value: 0.1, name: 'WELCOME10 (10%)' },
+                'NEKOMINIMAL': { type: 'percent', value: 0.1, name: 'NEKOMINIMAL (10%)' },
+                'NEKO50': { type: 'percent', value: 0.5, name: 'NEKO50 (50%)' },
+                'FREESHIP': { type: 'freeship', value: 0, name: 'FREE SHIPPING' }
+            };
+
+            if (promos[code]) {
+                activePromo = promos[code];
+                promoStatusMsg.textContent = currentLang === 'th' ?
+                    `ใช้คูปองส่วนลด "${activePromo.name}" สำเร็จ!` :
+                    `Promo code "${activePromo.name}" applied successfully!`;
+                promoStatusMsg.classList.add('success');
+                calculateCheckoutPrices();
+            } else {
+                activePromo = null;
+                promoStatusMsg.textContent = currentLang === 'th' ? 'รหัสโปรโมชันไม่ถูกต้อง' : 'Invalid promo code';
+                promoStatusMsg.classList.add('error');
+                calculateCheckoutPrices();
+            }
+        });
+    }
+
+    // Clickable Coupon Badges in Checkout Form
+    const couponBadges = document.querySelectorAll('.coupon-badge-item');
+    couponBadges.forEach(badge => {
+        badge.addEventListener('click', () => {
+            if (promoCodeInput) {
+                promoCodeInput.value = badge.dataset.code;
+                if (applyPromoBtn) {
+                    applyPromoBtn.click();
+                }
+            }
+        });
+    });
+
+    // Submit checkout Details and Place Order
+    if (checkoutDetailsForm) {
+        checkoutDetailsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Security: Sanitize inputs to prevent stored XSS attacks
+            const safeName = escapeHTML(document.getElementById('checkoutFullName').value.trim());
+            const safePhone = escapeHTML(document.getElementById('checkoutPhone').value.trim());
+            const safeAddress = escapeHTML(document.getElementById('checkoutAddress').value.trim());
+
+            const activeCard = document.querySelector('.payment-card.active');
+            const method = activeCard ? activeCard.dataset.method : 'credit-card';
+
+            const methodNames = {
+                'credit-card': currentLang === 'th' ? 'บัตรเครดิต' : 'Credit Card',
+                'promptpay': 'PromptPay QR',
+                'bank-transfer': currentLang === 'th' ? 'โอนผ่านบัญชีธนาคาร' : 'Bank Transfer',
+                'line-pay': 'Rabbit LINE Pay'
+            };
+
+            const orderId = `NEKO-${Math.floor(100000 + Math.random() * 900000)}`;
+            orderIdVal.textContent = orderId;
+
+            const calc = calculateCheckoutPrices();
+            const timestamp = new Date().toLocaleDateString(currentLang === 'th' ? 'th-TH' : 'en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            // Save order metadata securely
+            orders.unshift({
+                id: orderId,
+                time: timestamp,
+                buyer: safeName,
+                phone: safePhone,
+                address: safeAddress,
+                payment_method: methodNames[method],
+                items: cart.map(item => {
+                    const prod = products.find(p => p.id === item.id);
+                    const activePrice = prod ? (currentLang === 'th' ? prod.price_th : prod.price_en) : item.price;
+                    return { name: item.name, qty: item.qty, price: activePrice };
+                }),
+                discount_code: activePromo ? activePromo.name : null,
+                discount_amount: calc.discountVal,
+                shipping_fee: calc.shippingFee,
+                total: calc.grandTotal,
+                currency: currentLang === 'th' ? '฿' : '$'
+            });
+
+            localStorage.setItem('neko_orders', JSON.stringify(orders));
+
+            // Hide checkout modal and clear variables
+            checkoutDetailsModal.classList.remove('active');
+            clearInterval(qrTimerInterval);
+            checkoutDetailsForm.reset();
+
+            // Display Checkout Success
+            checkoutModal.classList.add('active');
+
+            cart = [];
+            updateCartUI();
+            renderAdminDashboard();
+        });
+    }
+
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', () => {
             checkoutModal.classList.remove('active');
@@ -1003,14 +1315,20 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = newsletterEmail.value.trim();
             if (email) {
-                newsletterStatus.textContent = currentLang === 'th' ?
-                    'ยินดีต้อนรับสู่ฝูง! โปรดเช็คอีเมลยืนยันในกล่องข้อความ' :
-                    'Welcome to the pack. Check your inbox!';
+                newsletterStatus.innerHTML = currentLang === 'th' ?
+                    'สำเร็จ! สมัครสมาชิกแล้ว ใช้โค้ด <strong>WELCOME10</strong> เพื่อรับส่วนลด 10%' :
+                    'Success! Join complete, use code <strong>WELCOME10</strong> for 10% off!';
                 newsletterStatus.className = 'newsletter-status success';
                 newsletterEmail.value = '';
+
+                showNotification(currentLang === 'th' ?
+                    'ยินดีต้อนรับ! คุณได้รับโค้ดส่วนลด WELCOME10' :
+                    'Welcome! You received promo code WELCOME10'
+                );
+
                 setTimeout(() => {
                     newsletterStatus.textContent = '';
-                }, 5000);
+                }, 8000);
             }
         });
     }
@@ -1172,10 +1490,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (passwordInput.length < 6) {
+            // Enhanced Security: Alphanumeric complexity check
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+            if (!passwordRegex.test(passwordInput)) {
                 registerErrorMsg.textContent = currentLang === 'th' ?
-                    'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' :
-                    'Password must be at least 6 characters.';
+                    'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร ประกอบด้วยตัวพิมพ์ใหญ่ (A-Z) ตัวพิมพ์เล็ก (a-z) และตัวเลข (0-9) อย่างละ 1 ตัว' :
+                    'Password must be at least 6 characters and include at least one uppercase, one lowercase, and one number.';
                 registerErrorMsg.style.display = 'block';
                 return;
             }
@@ -1217,9 +1537,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let loginAttempts = parseInt(sessionStorage.getItem('login_attempts') || '0');
+    let lockoutUntil = parseInt(sessionStorage.getItem('lockout_until') || '0');
+
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            // Lockout security validator
+            const now = Date.now();
+            if (lockoutUntil && now < lockoutUntil) {
+                const secondsLeft = Math.round((lockoutUntil - now) / 1000);
+                loginErrorMsg.textContent = currentLang === 'th' ?
+                    `บัญชีถูกระงับชั่วคราวชั่วครู่จากการใส่รหัสผ่านผิดซ้ำ โปรดลองอีกครั้งในอีก ${secondsLeft} วินาที` :
+                    `Too many failed attempts. Try again in ${secondsLeft} seconds.`;
+                loginErrorMsg.style.display = 'block';
+                return;
+            }
+
             const usernameInput = document.getElementById('loginUsername').value.trim();
             const passwordInput = document.getElementById('loginPassword').value;
 
@@ -1231,19 +1566,79 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (matchedUser) {
+                loginAttempts = 0;
+                sessionStorage.setItem('login_attempts', '0');
+                sessionStorage.removeItem('lockout_until');
+
                 activeUser = matchedUser;
                 sessionStorage.setItem('neko_active_user', JSON.stringify(matchedUser));
                 updateAuthUIVisibility();
                 closeAuthModal();
                 updateCartUI();
+                showNotification(currentLang === 'th' ? `ยินดีต้อนรับกลับมา คุณ ${activeUser.username}!` : `Welcome back, ${activeUser.username}!`);
             } else {
-                loginErrorMsg.textContent = currentLang === 'th' ?
-                    'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' :
-                    'Invalid username or password.';
+                loginAttempts++;
+                sessionStorage.setItem('login_attempts', loginAttempts.toString());
+
+                if (loginAttempts >= 3) {
+                    const lockoutTime = Date.now() + 30000; // 30 seconds
+                    lockoutUntil = lockoutTime;
+                    sessionStorage.setItem('lockout_until', lockoutTime.toString());
+                    loginErrorMsg.textContent = currentLang === 'th' ?
+                        'ป้อนรหัสผิดครบ 3 ครั้ง ระบบล็อก 30 วินาทีเพื่อความปลอดภัย' :
+                        'Failed 3 times. Locked for 30 seconds for security.';
+                } else {
+                    loginErrorMsg.textContent = currentLang === 'th' ?
+                        `ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (ครั้งที่ ${loginAttempts}/3)` :
+                        `Invalid username or password (Attempt ${loginAttempts}/3)`;
+                }
                 loginErrorMsg.style.display = 'block';
             }
         });
     }
+
+    // Social Login Click Handlers with Dynamic spinner connection UI
+    const socialBtns = document.querySelectorAll('.social-btn');
+    socialBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const platform = btn.classList.contains('google-btn') ? 'Google' :
+                btn.classList.contains('facebook-btn') ? 'Facebook' :
+                    btn.classList.contains('line-btn') ? 'Line' : 'Email';
+
+            if (lockoutUntil && Date.now() < lockoutUntil) {
+                showNotification(currentLang === 'th' ? 'ระบบความปลอดภัยระงับการล็อกอินขณะนี้' : 'Security lockout active.', 'error');
+                return;
+            }
+
+            const origHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> <span>Connecting...</span>`;
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+
+                const randomId = Math.floor(1000 + Math.random() * 9000);
+                const mockUsername = `${platform}_User_${randomId}`;
+
+                activeUser = {
+                    username: mockUsername,
+                    password: '',
+                    role: 'user'
+                };
+
+                sessionStorage.setItem('neko_active_user', JSON.stringify(activeUser));
+                updateAuthUIVisibility();
+                closeAuthModal();
+                updateCartUI();
+
+                showNotification(currentLang === 'th' ?
+                    `เข้าสู่ระบบสำเร็จผ่านบัญชี ${platform} (${mockUsername})` :
+                    `Logged in successfully via ${platform} (${mockUsername})`
+                );
+            }, 1000);
+        });
+    });
 
     const openAdminDrawer = (e) => {
         if (e) e.preventDefault();
@@ -1361,6 +1756,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const safeBuyer = escapeHTML(o.buyer);
                     const safeId = escapeHTML(o.id);
                     const safeTime = escapeHTML(o.time);
+                    const safePhone = o.phone ? escapeHTML(o.phone) : '-';
+                    const safeAddress = o.address ? escapeHTML(o.address) : '-';
+                    const safePayMethod = o.payment_method ? escapeHTML(o.payment_method) : (currentLang === 'th' ? 'ไม่ได้ระบุ' : 'Not specified');
+                    const discountText = o.discount_code ? ` (ส่วนลดโค้ด ${escapeHTML(o.discount_code)})` : '';
 
                     card.innerHTML = `
                         <div class="order-card-header">
@@ -1370,11 +1769,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <span class="order-time">${safeTime}</span>
                         </div>
+                        <div class="order-shipping-meta" style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:12px;border-bottom:1px solid var(--border-color);padding-bottom:8px;">
+                            <strong>เบอร์โทร:</strong> ${safePhone}<br>
+                            <strong>ที่อยู่จัดส่ง:</strong> ${safeAddress}<br>
+                            <strong>ชำระด้วย:</strong> ${safePayMethod}
+                        </div>
                         <ul class="order-items-list">
                             ${itemsHtml}
                         </ul>
-                        <div class="order-total-row">
-                            <span>${currentLang === 'th' ? 'ราคารวม' : 'Subtotal'}</span>
+                        <div class="order-total-row" style="margin-top:10px;">
+                            <span>${currentLang === 'th' ? 'ราคารวมสุทธิ' : 'Total Net'}${discountText}</span>
                             <span class="order-total-price">${o.currency}${o.total.toLocaleString()}</span>
                         </div>
                     `;
@@ -1479,8 +1883,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ==========================================================================
+       FLASH SALE COUNTDOWN TIMER
+       ========================================================================== */
+    const initFlashSaleTimer = () => {
+        const timerEl = document.getElementById('flashSaleTimer');
+        if (!timerEl) return;
+
+        // Set or load dynamic flash sale end time (stores in localStorage to survive refresh)
+        let saleEndTime = localStorage.getItem('neko_flash_sale_end');
+        if (!saleEndTime || parseInt(saleEndTime) < Date.now()) {
+            // Set 2 hours and 45 minutes from now
+            saleEndTime = Date.now() + 2 * 60 * 60 * 1000 + 45 * 60 * 1000;
+            localStorage.setItem('neko_flash_sale_end', saleEndTime.toString());
+        }
+
+        const updateClock = () => {
+            const now = Date.now();
+            const diff = parseInt(saleEndTime) - now;
+
+            if (diff <= 0) {
+                // Restart timer
+                const newEndTime = Date.now() + 2 * 60 * 60 * 1000;
+                localStorage.setItem('neko_flash_sale_end', newEndTime.toString());
+                saleEndTime = newEndTime;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const hh = hours < 10 ? '0' + hours : hours;
+            const mm = minutes < 10 ? '0' + minutes : minutes;
+            const ss = seconds < 10 ? '0' + seconds : seconds;
+
+            timerEl.textContent = `${hh}:${mm}:${ss}`;
+        };
+
+        updateClock();
+        setInterval(updateClock, 1000);
+    };
+
+    /* ==========================================================================
        INITIAL RUN
        ========================================================================== */
     setLanguage(currentLang);
     updateAuthUIVisibility();
+    initFlashSaleTimer();
 });
